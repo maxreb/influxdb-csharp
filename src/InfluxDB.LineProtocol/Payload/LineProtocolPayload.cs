@@ -7,6 +7,7 @@ namespace InfluxDB.LineProtocol.Payload
     public class LineProtocolPayload
     {
         readonly List<LineProtocolPoint> _points = new List<LineProtocolPoint>();
+        public int Count { get => _points.Count; }
 
         public void Add(LineProtocolPoint point)
         {
@@ -24,5 +25,7 @@ namespace InfluxDB.LineProtocol.Payload
                 textWriter.Write('\n');
             }
         }
+
+        public void Clear() => _points.Clear();
     }
 }

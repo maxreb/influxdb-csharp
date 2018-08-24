@@ -25,7 +25,7 @@ namespace InfluxDB.LineProtocol.Client
                 string database,
                 string username,
                 string password)
-            :base(serverBaseAddress, database, username, password)
+            : base(serverBaseAddress, database, username, password)
         {
             if (serverBaseAddress == null)
                 throw new ArgumentNullException(nameof(serverBaseAddress));
@@ -36,9 +36,38 @@ namespace InfluxDB.LineProtocol.Client
             _httpClient = new HttpClient(handler) { BaseAddress = serverBaseAddress };
         }
 
-        protected override async Task<LineProtocolWriteResult> OnSendAsync(
-            string payload,
-            Precision precision,
+
+        public async Task<LineProtocolWriteResult> SendQueryAsync(string query, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var endpoint = $"write?db={Uri.EscapeDataString(_database)}";
+            if (!string.IsNullOrEmpty(_username))
+                endpoint += $"&u={Uri.EscapeDataString(_username)}&p={Uri.EscapeDataString(_password)}";
+
+            
+
+            var content = new StringContent(query, Encoding.UTF8);
+            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken).ConfigureAwait(false);
+
+            var body = string.Empty;
+            if (response.Content != null)
+            {
+                body = await response.Content.ReadAsStringAsync();
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new LineProtocolWriteResult(true, null,body);
+            }
+
+            
+
+            
+
+            return new LineProtocolWriteResult(false, $"{response.StatusCode} {response.ReasonPhrase} {body}",body);
+
+        }
+
+        protected override async Task<LineProtocolWriteResult> OnSendAsync(string payload, Precision precision,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             var endpoint = $"write?db={Uri.EscapeDataString(_database)}";
@@ -78,7 +107,7 @@ namespace InfluxDB.LineProtocol.Client
                 body = await response.Content.ReadAsStringAsync();
             }
 
-            return new LineProtocolWriteResult(false, $"{response.StatusCode} {response.ReasonPhrase} {body}");
+            return new LineProtocolWriteResult(false, $"{response.StatusCode} {response.ReasonPhrase} {body}",body);
         }
     }
 }
